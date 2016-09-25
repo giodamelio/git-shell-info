@@ -1,7 +1,7 @@
-use std::{path, error};
+use std::path;
 
 use git2;
-use git2::{Repository, ErrorCode};
+use git2::Repository;
 
 quick_error! {
     #[derive(Debug)]
@@ -15,8 +15,9 @@ quick_error! {
     }
 }
 
+#[derive(RustcEncodable)]
 pub struct GitInfo {
-    repo: Repository,
+    branch_current: String,
 }
 
 impl GitInfo {
@@ -24,12 +25,13 @@ impl GitInfo {
         let repo = try!(Repository::open(path));
 
         Ok(GitInfo {
-            repo: repo,
+            branch_current: try!(GitInfo::branch_current(repo)),
         })
     }
 
-    pub fn branch_current(&self) -> Result<String, GitInfoError> {
-        let head = try!(self.repo.head());
+    pub fn branch_current(repo: git2::Repository) ->
+        Result<String, GitInfoError> {
+        let head = try!(repo.head());
         Ok(head.shorthand().unwrap().to_owned())
         // let head = match self.repo.head() {
         //     Ok(head) => Some(head),

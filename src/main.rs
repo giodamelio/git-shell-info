@@ -1,6 +1,8 @@
 extern crate git2;
 #[macro_use] extern crate clap;
 #[macro_use] extern crate quick_error;
+extern crate mustache;
+extern crate rustc_serialize;
 
 mod git;
 
@@ -10,9 +12,17 @@ use clap::{App, Arg};
 use git::GitInfo;
 
 // Replaces the tags with info from git
-fn replace(git: git::GitInfo, format_string: String) -> String {
-    format_string.replace("%b",
-                          git.branch_current().unwrap().as_str())
+fn replace(git_info: git::GitInfo, template_string: String) -> String {
+    let mut output: Vec<u8> = vec![];
+    
+    // Create the template from the input
+    let template = mustache::compile_str(template_string.as_str());
+
+    // Render the template into output string
+    template.render(&mut output, &git_info).unwrap();
+
+    // Convert back into string
+    String::from_utf8(output).unwrap()
 }
 
 fn main() {
@@ -21,14 +31,14 @@ fn main() {
         .version(crate_version!())
         .author(crate_authors!())
         .about("Easily print git info for your prompt")
-        .arg(Arg::with_name("FORMAT")
-             .help("The output format")
+        .arg(Arg::with_name("TEMPLATE")
+             .help("The template to output")
              .required(true)
              .index(1))
         .get_matches();
 
     // Unwrap is safe because FORMAT is required, if it does not exist this line will never be reached
-    let format = String::from(args.value_of("FORMAT").unwrap());
+    let template = String::from(args.value_of("TEMPLATE").unwrap());
 
     // Get the current working directory
     let cwd = match env::current_dir() {
@@ -43,7 +53,7 @@ fn main() {
     };
 
     // Replace the format string
-    let output_string = replace(git_info, format);
+    let output_string = replace(git_info, template);
 
     // Print it out
     print!("{}", output_string);
