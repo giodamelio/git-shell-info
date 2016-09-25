@@ -29,18 +29,12 @@ impl GitInfo {
         })
     }
 
-    pub fn branch_current(repo: git2::Repository) ->
-        Result<String, GitInfoError> {
+    pub fn branch_current(repo: git2::Repository) -> Result<String, GitInfoError> {
         let head = try!(repo.head());
-        Ok(head.shorthand().unwrap().to_owned())
-        // let head = match self.repo.head() {
-        //     Ok(head) => Some(head),
-        //     Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
-        //         e.code() == ErrorCode::NotFound => None,
-        //     Err(e) => return Err(e),
-        // };
-        // let head = head.as_ref().and_then(|h| h.shorthand());
-        // head
+        match head.shorthand() {
+            Some(shorthand) => Ok(shorthand.to_owned()),
+            None => Ok(String::from("NO BRANCH")),
+        }
     }
 }
 
