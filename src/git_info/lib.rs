@@ -1,5 +1,4 @@
 extern crate git2;
-#[macro_use] extern crate quick_error;
 
 mod errors;
 
@@ -28,13 +27,13 @@ impl GitInfo {
 
         // Make sure head is pointing to a branch
         if !head.is_branch() {
-            return Err(errors::GitInfoError::BranchError("Not a branch"));
+            return Err(errors::GitInfoError::BranchError);
         };
 
         // Get the name of the branch
         let name = match head.shorthand() {
             Some(name) => name,
-            None => return Err(errors::GitInfoError::BranchError("No branch name")),
+            None => return Err(errors::GitInfoError::BranchError),
         };
 
         // Get the branch

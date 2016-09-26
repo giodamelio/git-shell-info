@@ -14,4 +14,3 @@ path = "src/main.rs"
 [dependencies]
 clap = "2.13.0"
 git2 = "0.4.4"
-quick-error = "1.1.0"
