@@ -1,8 +1,6 @@
 extern crate git2;
 #[macro_use] extern crate clap;
 #[macro_use] extern crate quick_error;
-extern crate mustache;
-extern crate rustc_serialize;
 
 mod git;
 
@@ -13,16 +11,8 @@ use git::GitInfo;
 
 // Replaces the tags with info from git
 fn replace(git_info: git::GitInfo, template_string: String) -> String {
-    let mut output: Vec<u8> = vec![];
-    
-    // Create the template from the input
-    let template = mustache::compile_str(template_string.as_str());
-
-    // Render the template into output string
-    template.render(&mut output, &git_info).unwrap();
-
-    // Convert back into string
-    String::from_utf8(output).unwrap()
+    println!("{}", git_info.branch_current().unwrap().name().unwrap().unwrap());
+    String::from("HAHA")
 }
 
 fn main() {

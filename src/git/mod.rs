@@ -1,23 +1,28 @@
 use std::path;
 
 use git2;
-use git2::Repository;
+use git2::{Repository, Branch, BranchType};
 
 quick_error! {
     #[derive(Debug)]
     pub enum GitInfoError {
-        GitError(err: git2::Error) {
+        LibGitError(err: git2::Error) {
             from()
             description("git error")
             display("Git2 error: {}", err)
             cause(err)
         }
+        BranchError(err: &'static str) {
+            from()
+            description("branch error")
+            display("Branch error: {}", err)
+        }
     }
 }
 
-#[derive(RustcEncodable)]
+// #[derive(Debug)]
 pub struct GitInfo {
-    branch_current: String,
+    repo: Repository,
 }
 
 impl GitInfo {
@@ -25,16 +30,33 @@ impl GitInfo {
         let repo = try!(Repository::open(path));
 
         Ok(GitInfo {
-            branch_current: try!(GitInfo::branch_current(repo)),
+            repo: repo,
         })
     }
 
-    pub fn branch_current(repo: git2::Repository) -> Result<String, GitInfoError> {
-        let head = try!(repo.head());
-        match head.shorthand() {
-            Some(shorthand) => Ok(shorthand.to_owned()),
-            None => Ok(String::from("NO BRANCH")),
-        }
+    // Gets the current branch
+    pub fn branch_current(&self) -> Result<Branch, GitInfoError> {
+        // Get a reference to the head
+        let head = try!(self.repo.head());
+
+        // Make sure head is pointing to a branch
+        if !head.is_branch() {
+            return Err(GitInfoError::BranchError("Not a branch"));
+        };
+
+        // Get the name of the branch
+        let name = match head.shorthand() {
+            Some(name) => name,
+            None => return Err(GitInfoError::BranchError("No branch name")),
+        };
+
+        // Get the branch
+        Ok(try!(self.repo.find_branch(name, BranchType::Local)))
+    }
+
+    // Gets count of commits the current branch is ahead of its upstream
+    fn branch_upstream_ahead(&self) -> Result<usize, GitInfoError> {
+        Ok(10)
     }
 }
 
