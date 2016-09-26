@@ -1,6 +1,7 @@
 extern crate git2;
 
 mod errors;
+mod parser;
 
 use std::path;
 
