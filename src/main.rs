@@ -1,16 +1,14 @@
 extern crate git2;
 #[macro_use] extern crate clap;
-#[macro_use] extern crate quick_error;
-
-mod git;
+extern crate git_info;
 
 use std::env;
 use clap::{App, Arg};
 
-use git::GitInfo;
+use git_info::GitInfo;
 
 // Replaces the tags with info from git
-fn replace(git_info: git::GitInfo, template_string: String) -> String {
+fn replace(git_info: git_info::GitInfo, template_string: String) -> String {
     println!("{}", git_info.branch_current().unwrap().name().unwrap().unwrap());
     String::from("HAHA")
 }

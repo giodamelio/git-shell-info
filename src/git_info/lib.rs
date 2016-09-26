@@ -1,6 +1,8 @@
+extern crate git2;
+#[macro_use] extern crate quick_error;
+
 use std::path;
 
-use git2;
 use git2::{Repository, Branch, BranchType};
 
 quick_error! {

@@ -3,6 +3,14 @@ authors = ["Gio d'Amelio <giodamelio@gmail.com>"]
 name = "git-shell-info"
 version = "0.1.0"
 
+[lib]
+name = "git_info"
+path = "src/git_info/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
 [dependencies]
 clap = "2.13.0"
 git2 = "0.4.4"
