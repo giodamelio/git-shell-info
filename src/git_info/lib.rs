@@ -1,26 +1,11 @@
 extern crate git2;
 #[macro_use] extern crate quick_error;
 
+mod errors;
+
 use std::path;
 
 use git2::{Repository, Branch, BranchType};
-
-quick_error! {
-    #[derive(Debug)]
-    pub enum GitInfoError {
-        LibGitError(err: git2::Error) {
-            from()
-            description("git error")
-            display("Git2 error: {}", err)
-            cause(err)
-        }
-        BranchError(err: &'static str) {
-            from()
-            description("branch error")
-            display("Branch error: {}", err)
-        }
-    }
-}
 
 // #[derive(Debug)]
 pub struct GitInfo {
@@ -28,7 +13,7 @@ pub struct GitInfo {
 }
 
 impl GitInfo {
-    pub fn new(path: path::PathBuf) -> Result<GitInfo, GitInfoError> {
+    pub fn new(path: path::PathBuf) -> Result<GitInfo, errors::GitInfoError> {
         let repo = try!(Repository::open(path));
 
         Ok(GitInfo {
@@ -37,19 +22,19 @@ impl GitInfo {
     }
 
     // Gets the current branch
-    pub fn branch_current(&self) -> Result<Branch, GitInfoError> {
+    pub fn branch_current(&self) -> Result<Branch, errors::GitInfoError> {
         // Get a reference to the head
         let head = try!(self.repo.head());
 
         // Make sure head is pointing to a branch
         if !head.is_branch() {
-            return Err(GitInfoError::BranchError("Not a branch"));
+            return Err(errors::GitInfoError::BranchError("Not a branch"));
         };
 
         // Get the name of the branch
         let name = match head.shorthand() {
             Some(name) => name,
-            None => return Err(GitInfoError::BranchError("No branch name")),
+            None => return Err(errors::GitInfoError::BranchError("No branch name")),
         };
 
         // Get the branch
@@ -57,7 +42,7 @@ impl GitInfo {
     }
 
     // Gets count of commits the current branch is ahead of its upstream
-    fn branch_upstream_ahead(&self) -> Result<usize, GitInfoError> {
+    fn branch_upstream_ahead(&self) -> Result<usize, errors::GitInfoError> {
         Ok(10)
     }
 }
