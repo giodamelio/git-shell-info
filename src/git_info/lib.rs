@@ -8,6 +8,8 @@ use std::path;
 
 use git2::{Repository, Branch, BranchType};
 
+use parser::ParseItem;
+
 // #[derive(Debug)]
 pub struct GitInfo {
     repo: Repository,
@@ -20,6 +22,23 @@ impl GitInfo {
         Ok(GitInfo {
             repo: repo,
         })
+    }
+
+    pub fn format(&self, template: &str) -> Result<String, errors::GitInfoError> {
+        // Parse the template
+        let parsed = try!(parser::parse(template));
+
+        // Render the template with git data
+        Ok(parsed.iter()
+           .map(|item| {
+               match *item {
+                   ParseItem::Literal(text) => text,
+                   ParseItem::Branch => "(branch_name_here)",
+                   ParseItem::Remote => "(remote_name_here)",
+               }
+           })
+           .collect::<Vec<_>>()
+           .concat())
     }
 
     // Gets the current branch

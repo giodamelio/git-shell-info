@@ -7,12 +7,6 @@ use clap::{App, Arg};
 
 use git_info::GitInfo;
 
-// Replaces the tags with info from git
-fn replace(git_info: git_info::GitInfo, template_string: String) -> String {
-    println!("{}", git_info.branch_current().unwrap().name().unwrap().unwrap());
-    String::from("HAHA")
-}
-
 fn main() {
     // Parse args
     let args = App::new("git-shell-info")
@@ -26,7 +20,7 @@ fn main() {
         .get_matches();
 
     // Unwrap is safe because FORMAT is required, if it does not exist this line will never be reached
-    let template = String::from(args.value_of("TEMPLATE").unwrap());
+    let template = args.value_of("TEMPLATE").unwrap();
 
     // Get the current working directory
     let cwd = match env::current_dir() {
@@ -40,9 +34,11 @@ fn main() {
         Err(e) => panic!("Error: {}", e),
     };
 
-    // Replace the format string
-    let output_string = replace(git_info, template);
-
+    let output = match git_info.format(template) {
+        Ok(text) => text,
+        Err(e) => panic!("Error: {}", e),
+    };
+    
     // Print it out
-    print!("{}", output_string);
+    print!("{}", output);
 }
