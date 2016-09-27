@@ -28,14 +28,31 @@ impl GitInfo {
         // Parse the template
         let parsed = try!(parser::parse(template));
 
+        // Get the current branch
+        let branch = try!(self.branch_current());
+
         // Render the template with git data
         Ok(parsed.iter()
+           // Render the data from git
            .map(|item| {
                match *item {
-                   ParseItem::Literal(text) => text,
-                   ParseItem::Branch => "(branch_name_here)",
-                   ParseItem::Remote => "(remote_name_here)",
+                   ParseItem::Literal(text) =>
+                       Ok::<&str, errors::GitInfoError>(text),
+                   ParseItem::Branch => {
+                       let name = try!(branch.name());
+                       match name {
+                           Some(n) => Ok(n),
+                           None => Ok(""),
+                       }
+                   },
+                   // ParseItem::Branch => Ok("(branch_name_here)"),
+                   ParseItem::Remote => Ok("(remote_name_here)"),
                }
+           })
+           // Render any errors at empty strings
+           .map(|item| match item {
+               Ok(i) => i,
+               Err(_) => "",
            })
            .collect::<Vec<_>>()
            .concat())
