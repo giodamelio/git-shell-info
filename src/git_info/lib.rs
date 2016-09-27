@@ -45,8 +45,6 @@ impl GitInfo {
                            None => Ok(""),
                        }
                    },
-                   // ParseItem::Branch => Ok("(branch_name_here)"),
-                   ParseItem::Remote => Ok("(remote_name_here)"),
                }
            })
            // Render any errors at empty strings

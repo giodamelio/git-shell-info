@@ -13,15 +13,13 @@ fn brace_or_eol(char: u8) -> bool {
 pub enum ParseItem<'a> {
     Literal(&'a str),
     Branch,
-    Remote,
 }
 
 // A single item
 named!(item<&[u8], ParseItem>, delimited!(
     char!('{'),
     alt!(
-        tag!("branch") => { |_| ParseItem::Branch } |
-        tag!("remote") => { |_| ParseItem::Remote }
+        tag!("branch") => { |_| ParseItem::Branch }
     ),
     char!('}')
 ));
@@ -54,16 +52,15 @@ mod tests {
     #[test]
     fn single_item() {
         assert_eq!(item(b"{branch}"), IResult::Done(&b""[..], ParseItem::Branch));
-        assert_eq!(item(b"{remote}"), IResult::Done(&b""[..], ParseItem::Remote));
     }
 
     #[test]
     fn three_items() {
         assert_eq!(
-            items(b"{branch}{remote}{branch}"),
+            items(b"{branch}{branch}{branch}"),
             IResult::Done(
                 &b""[..],
-                vec![ParseItem::Branch, ParseItem::Remote, ParseItem::Branch],
+                vec![ParseItem::Branch, ParseItem::Branch, ParseItem::Branch],
             )
         );
     }
@@ -71,13 +68,13 @@ mod tests {
     #[test]
     fn three_items_with_literals() {
         assert_eq!(
-            items(b"{branch}|{remote}|{branch}"),
+            items(b"{branch}|{branch}|{branch}"),
             IResult::Done(
                 &b""[..],
                 vec![
                     ParseItem::Branch,
                     ParseItem::Literal("|"),
-                    ParseItem::Remote,
+                    ParseItem::Branch,
                     ParseItem::Literal("|"),
                     ParseItem::Branch
                 ],
