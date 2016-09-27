@@ -4,6 +4,11 @@ use nom::IResult;
 
 use super::errors::GitInfoError;
 
+// Go until there is a {
+fn brace_or_eol(char: u8) -> bool {
+    char != b'{'
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParseItem<'a> {
     Literal(&'a str),
@@ -22,11 +27,11 @@ named!(item<&[u8], ParseItem>, delimited!(
 ));
 
 // One or more items seperated some string literals
-named!(items<&[u8], Vec<ParseItem> >, many1!(alt!(
+named!(items<&[u8], Vec<ParseItem> >, many0!(alt!(
     item |
     map!(
         map_res!(
-            take_until!("{"),
+            take_while!(brace_or_eol),
             str::from_utf8
         ),
         ParseItem::Literal
@@ -76,6 +81,17 @@ mod tests {
                     ParseItem::Literal("|"),
                     ParseItem::Branch
                 ],
+            )
+        );
+    }
+
+    #[test]
+    fn items_with_literals_at_end() {
+        assert_eq!(
+            items(b"{branch}YAY"),
+            IResult::Done(
+                &b""[..],
+                vec![ParseItem::Branch, ParseItem::Literal("YAY")],
             )
         );
     }
