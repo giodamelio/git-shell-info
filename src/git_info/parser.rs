@@ -1,13 +1,13 @@
-pub fn hello() -> &'static str {
-    "world"
-}
+named!(parens, delimited!(char!('('), is_not!(")"), char!(')')));
 
 #[cfg(test)]
 mod tests {
-    use super::hello;
+    use nom::IResult;
+
+    use super::parens;
 
     #[test]
     fn it_works() {
-        assert_eq!("aa", hello());
+        assert_eq!(parens(b"(aaa)"), IResult::Done(&b""[..], &b"aaa"[..]));
     }
 }

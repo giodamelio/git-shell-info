@@ -1,4 +1,5 @@
 extern crate git2;
+#[macro_use] extern crate nom;
 
 mod errors;
 mod parser;
