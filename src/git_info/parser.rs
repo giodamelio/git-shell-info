@@ -13,13 +13,15 @@ fn brace_or_eol(char: u8) -> bool {
 pub enum ParseItem<'a> {
     Literal(&'a str),
     Branch,
+    CommitCount,
 }
 
 // A single item
 named!(item<&[u8], ParseItem>, delimited!(
     char!('{'),
     alt!(
-        tag!("branch") => { |_| ParseItem::Branch }
+        tag!("branch") => { |_| ParseItem::Branch } |
+        tag!("commit_count") => { |_| ParseItem::CommitCount }
     ),
     char!('}')
 ));
@@ -52,6 +54,7 @@ mod tests {
     #[test]
     fn single_item() {
         assert_eq!(item(b"{branch}"), IResult::Done(&b""[..], ParseItem::Branch));
+        assert_eq!(item(b"{commit_count}"), IResult::Done(&b""[..], ParseItem::CommitCount));
     }
 
     #[test]

@@ -29,7 +29,6 @@ impl GitInfo {
         let parsed = try!(parser::parse(template));
 
         // Get the current branch
-        let branch = try!(self.branch_current());
 
         // Render the template with git data
         Ok(parsed.iter()
@@ -37,20 +36,26 @@ impl GitInfo {
            .map(|item| {
                match *item {
                    ParseItem::Literal(text) =>
-                       Ok::<&str, errors::GitInfoError>(text),
+                       Ok::<String, errors::GitInfoError>(text.to_owned()),
                    ParseItem::Branch => {
+                       let branch = try!(self.branch_current());
                        let name = try!(branch.name());
                        match name {
-                           Some(n) => Ok(n),
-                           None => Ok(""),
+                           Some(n) => Ok(n.to_owned()),
+                           None => Ok(String::from("")),
                        }
+                   },
+                   ParseItem::CommitCount => {
+                       let mut revwalk = try!(self.repo.revwalk());
+                       try!(revwalk.push_head());
+                       Ok(revwalk.count().to_string())
                    },
                }
            })
            // Render any errors at empty strings
            .map(|item| match item {
                Ok(i) => i,
-               Err(_) => "",
+               Err(_) => String::from(""),
            })
            .collect::<Vec<_>>()
            .concat())
