@@ -60,10 +60,10 @@ mod tests {
     #[test]
     fn three_items() {
         assert_eq!(
-            items(b"{branch}{branch}{branch}"),
+            items(b"{branch}{commit_count}{branch}"),
             IResult::Done(
                 &b""[..],
-                vec![ParseItem::Branch, ParseItem::Branch, ParseItem::Branch],
+                vec![ParseItem::Branch, ParseItem::CommitCount, ParseItem::Branch],
             )
         );
     }
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn three_items_with_literals() {
         assert_eq!(
-            items(b"{branch}|{branch}|{branch}"),
+            items(b"{branch}|{branch}|{commit_count}"),
             IResult::Done(
                 &b""[..],
                 vec![
@@ -79,7 +79,7 @@ mod tests {
                     ParseItem::Literal("|"),
                     ParseItem::Branch,
                     ParseItem::Literal("|"),
-                    ParseItem::Branch
+                    ParseItem::CommitCount,
                 ],
             )
         );
