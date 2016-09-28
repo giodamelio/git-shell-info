@@ -24,6 +24,7 @@ impl GitInfo {
         })
     }
 
+    // Render a template
     pub fn format(&self, template: &str) -> Result<String, errors::GitInfoError> {
         // Parse the template
         let parsed = try!(parser::parse(template));
@@ -33,28 +34,7 @@ impl GitInfo {
         // Render the template with git data
         Ok(parsed.iter()
            // Render the data from git
-           .map(|item| {
-               match *item {
-                   ParseItem::Literal(text) =>
-                       Ok::<String, errors::GitInfoError>(text.to_owned()),
-                   ParseItem::Branch => {
-                       let branch = try!(self.branch_current());
-                       let name = try!(branch.name());
-                       match name {
-                           Some(n) => Ok(n.to_owned()),
-                           None => Ok(String::from("")),
-                       }
-                   },
-                   ParseItem::CommitCount => {
-                       let mut revwalk = try!(self.repo.revwalk());
-                       try!(revwalk.push_head());
-                       Ok(revwalk.count().to_string())
-                   },
-                   ParseItem::Modified => {
-                       Ok(String::from("test"))
-                   },
-               }
-           })
+           .map(|parse_item| self.parse_item_to_string(parse_item))
            // Render any errors at empty strings
            .map(|item| match item {
                Ok(i) => i,
@@ -62,6 +42,30 @@ impl GitInfo {
            })
            .collect::<Vec<_>>()
            .concat())
+    }
+
+    // Convert a ParseItem varient into a String
+    fn parse_item_to_string(&self, parse_item: &ParseItem) -> Result<String, errors::GitInfoError> {
+        match *parse_item {
+            ParseItem::Literal(text) =>
+                Ok::<String, errors::GitInfoError>(text.to_owned()),
+            ParseItem::Branch => {
+                let branch = try!(self.branch_current());
+                let name = try!(branch.name());
+                match name {
+                    Some(n) => Ok(n.to_owned()),
+                    None => Ok(String::from("")),
+                }
+            },
+            ParseItem::CommitCount => {
+                let mut revwalk = try!(self.repo.revwalk());
+                try!(revwalk.push_head());
+                Ok(revwalk.count().to_string())
+            },
+            ParseItem::Modified => {
+                Ok(String::from("test"))
+            },
+        }
     }
 
     // Gets the current branch
