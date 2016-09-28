@@ -14,7 +14,7 @@ pub enum ParseItem<'a> {
     Literal(&'a str),
     Branch,
     CommitCount,
-    Modified,
+    ModifiedCount,
 }
 
 // A single item
@@ -23,7 +23,7 @@ named!(item<&[u8], ParseItem>, delimited!(
     alt!(
         tag!("branch") => { |_| ParseItem::Branch } |
         tag!("commit_count") => { |_| ParseItem::CommitCount } |
-        tag!("modified") => { |_| ParseItem::Modified }
+        tag!("modified_count") => { |_| ParseItem::ModifiedCount }
     ),
     char!('}')
 ));
@@ -57,7 +57,7 @@ mod tests {
     fn single_item() {
         assert_eq!(item(b"{branch}"), IResult::Done(&b""[..], ParseItem::Branch));
         assert_eq!(item(b"{commit_count}"), IResult::Done(&b""[..], ParseItem::CommitCount));
-        assert_eq!(item(b"{modified}"), IResult::Done(&b""[..], ParseItem::Modified));
+        assert_eq!(item(b"{modified_count}"), IResult::Done(&b""[..], ParseItem::ModifiedCount));
     }
 
     #[test]
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn one_of_each() {
         assert_eq!(
-            items(b"{branch}|{commit_count}|{modified}"),
+            items(b"{branch}|{commit_count}|{modified_count}"),
             IResult::Done(
                 &b""[..],
                 vec![
@@ -110,7 +110,7 @@ mod tests {
                     ParseItem::Literal("|"),
                     ParseItem::CommitCount,
                     ParseItem::Literal("|"),
-                    ParseItem::Modified,
+                    ParseItem::ModifiedCount,
                 ],
             )
         );

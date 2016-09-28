@@ -47,8 +47,10 @@ impl GitInfo {
     // Convert a ParseItem varient into a String
     fn parse_item_to_string(&self, parse_item: &ParseItem) -> Result<String, errors::GitInfoError> {
         match *parse_item {
+            // A non-ParseItem string literal to be passed through to the output intact
             ParseItem::Literal(text) =>
                 Ok::<String, errors::GitInfoError>(text.to_owned()),
+            // Get the name of the current branch
             ParseItem::Branch => {
                 let branch = try!(self.branch_current());
                 let name = try!(branch.name());
@@ -57,13 +59,21 @@ impl GitInfo {
                     None => Ok(String::from("")),
                 }
             },
+            // Count how many commits there are on the current branch
             ParseItem::CommitCount => {
                 let mut revwalk = try!(self.repo.revwalk());
                 try!(revwalk.push_head());
                 Ok(revwalk.count().to_string())
             },
-            ParseItem::Modified => {
-                Ok(String::from("test"))
+            // Count how many files in the working tree have been modified
+            ParseItem::ModifiedCount => {
+                let statuses = try!(self.repo.statuses(None));
+                let modified_count = statuses.iter()
+                    .map(|status_entry| status_entry.status())
+                    .filter(|status| status.contains(git2::STATUS_WT_MODIFIED))
+                    .count();
+
+                Ok(modified_count.to_string())
             },
         }
     }
@@ -93,19 +103,3 @@ impl GitInfo {
         Ok(10)
     }
 }
-
-// fn status() {
-//     for status_entry in repo.statuses(None).unwrap().iter() {
-//         let status = status_entry.status();
-//         let path = status_entry.path().unwrap();
-//         let status_text = match status {
-//             s if s.contains(git2::STATUS_WT_MODIFIED) => "modified",
-//             s if s.contains(git2::STATUS_WT_DELETED) => "deleted",
-//             s if s.contains(git2::STATUS_WT_RENAMED) => "renamed",
-//             s if s.contains(git2::STATUS_WT_NEW) => "new",
-//             s if s.contains(git2::STATUS_WT_TYPECHANGE) => "typechange",
-//             _ => continue,
-//         };
-//         println!("{}: {}", status_text, path);
-//     }
-// }
