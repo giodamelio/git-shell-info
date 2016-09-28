@@ -50,6 +50,9 @@ impl GitInfo {
                        try!(revwalk.push_head());
                        Ok(revwalk.count().to_string())
                    },
+                   ParseItem::Modified => {
+                       Ok(String::from("test"))
+                   },
                }
            })
            // Render any errors at empty strings
