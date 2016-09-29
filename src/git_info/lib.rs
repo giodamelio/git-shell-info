@@ -67,13 +67,13 @@ impl GitInfo {
             },
             // Count how many files in the working tree have been modified
             ParseItem::ModifiedCount => {
-                let statuses = try!(self.repo.statuses(None));
-                let modified_count = statuses.iter()
-                    .map(|status_entry| status_entry.status())
-                    .filter(|status| status.contains(git2::STATUS_WT_MODIFIED))
-                    .count();
-
-                Ok(modified_count.to_string())
+                let count = try!(self.status_count_filter(git2::STATUS_WT_MODIFIED));
+                Ok(count.to_string())
+            },
+            // Count how many files in the working tree have been deleted
+            ParseItem::DeletedCount => {
+                let count = try!(self.status_count_filter(git2::STATUS_WT_DELETED));
+                Ok(count.to_string())
             },
         }
     }
@@ -96,6 +96,17 @@ impl GitInfo {
 
         // Get the branch
         Ok(try!(self.repo.find_branch(name, BranchType::Local)))
+    }
+
+    // Get the count of files matching a status type
+    fn status_count_filter(&self, status_type: git2::Status) -> Result<usize, errors::GitInfoError> {
+        let statuses = try!(self.repo.statuses(None));
+        let modified_count = statuses.iter()
+            .map(|status_entry| status_entry.status())
+            .filter(|status| status.contains(status_type))
+            .count();
+
+        Ok(modified_count)
     }
 
     // Gets count of commits the current branch is ahead of its upstream
