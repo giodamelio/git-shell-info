@@ -65,6 +65,11 @@ impl GitInfo {
                 try!(revwalk.push_head());
                 Ok(revwalk.count().to_string())
             },
+            // Count how many files in the working tree are new
+            ParseItem::NewCount => {
+                let count = try!(self.status_count_filter(git2::STATUS_WT_NEW));
+                Ok(count.to_string())
+            },
             // Count how many files in the working tree have been modified
             ParseItem::ModifiedCount => {
                 let count = try!(self.status_count_filter(git2::STATUS_WT_MODIFIED));
