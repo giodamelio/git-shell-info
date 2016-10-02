@@ -65,8 +65,8 @@ impl GitInfo {
                 try!(revwalk.push_head());
                 Ok(revwalk.count().to_string())
             },
-            // Changes to the working tree
-            ParseItem::WTChangeCount(ref change_type) => {
+            // Working Tree/Staged changes
+            ParseItem::ChangeCount(ref change_type) => {
                 let count = try!(self.status_count_filter(change_type));
                 Ok(count.to_string())
             },
@@ -99,11 +99,18 @@ impl GitInfo {
         let modified_count = statuses.iter()
             .map(|status_entry| status_entry.status())
             .filter(|status| status.contains(match *status_type {
-                ChangeType::New => git2::STATUS_WT_NEW,
-                ChangeType::Modified => git2::STATUS_WT_MODIFIED,
-                ChangeType::Deleted => git2::STATUS_WT_DELETED,
-                ChangeType::Renamed => git2::STATUS_WT_RENAMED,
-                ChangeType::Typechange => git2::STATUS_WT_TYPECHANGE,
+                // Working tree changes
+                ChangeType::WTNew => git2::STATUS_WT_NEW,
+                ChangeType::WTModified => git2::STATUS_WT_MODIFIED,
+                ChangeType::WTDeleted => git2::STATUS_WT_DELETED,
+                ChangeType::WTRenamed => git2::STATUS_WT_RENAMED,
+                ChangeType::WTTypechange => git2::STATUS_WT_TYPECHANGE,
+                // Staged changes
+                ChangeType::StagedNew => git2::STATUS_INDEX_NEW,
+                ChangeType::StagedModified => git2::STATUS_INDEX_MODIFIED,
+                ChangeType::StagedDeleted => git2::STATUS_INDEX_DELETED,
+                ChangeType::StagedRenamed => git2::STATUS_INDEX_RENAMED,
+                ChangeType::StagedTypechange => git2::STATUS_INDEX_TYPECHANGE,
             }))
             .count();
 

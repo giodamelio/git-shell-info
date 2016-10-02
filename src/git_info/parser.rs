@@ -11,11 +11,19 @@ fn brace_or_eol(char: u8) -> bool {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ChangeType {
-    New,
-    Modified,
-    Deleted,
-    Renamed,
-    Typechange,
+    // Working tree changes
+    WTNew,
+    WTModified,
+    WTDeleted,
+    WTRenamed,
+    WTTypechange,
+
+    // Staged changes
+    StagedNew,
+    StagedModified,
+    StagedDeleted,
+    StagedRenamed,
+    StagedTypechange,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -23,22 +31,29 @@ pub enum ParseItem<'a> {
     Literal(&'a str),
     Branch,
     CommitCount,
-    WTChangeCount(ChangeType), // Changes to the working tree
+    ChangeCount(ChangeType),
 }
 
 // A single item
 named!(item<&[u8], ParseItem>, delimited!(
     char!('{'),
-    alt!(
+    alt_complete!(
         tag!("branch") => { |_| ParseItem::Branch } |
         tag!("commit_count") => { |_| ParseItem::CommitCount } |
 
         // Changes in the working tree
-        tag!("new_count") => { |_| ParseItem::WTChangeCount(ChangeType::New) } |
-        tag!("modified_count") => { |_| ParseItem::WTChangeCount(ChangeType::Modified) } |
-        tag!("deleted_count") => { |_| ParseItem::WTChangeCount(ChangeType::Deleted) } |
-        tag!("renamed_count") => { |_| ParseItem::WTChangeCount(ChangeType::Renamed) } |
-        tag!("typechange_count") => { |_| ParseItem::WTChangeCount(ChangeType::Typechange) }
+        tag!("new_count") => { |_| ParseItem::ChangeCount(ChangeType::WTNew) } |
+        tag!("modified_count") => { |_| ParseItem::ChangeCount(ChangeType::WTModified) } |
+        tag!("deleted_count") => { |_| ParseItem::ChangeCount(ChangeType::WTDeleted) } |
+        tag!("renamed_count") => { |_| ParseItem::ChangeCount(ChangeType::WTRenamed) } |
+        tag!("typechange_count") => { |_| ParseItem::ChangeCount(ChangeType::WTTypechange) } |
+
+        // Stashed changes
+        tag!("staged_new_count") => { |_| ParseItem::ChangeCount(ChangeType::StagedNew) } |
+        tag!("staged_modified_count") => { |_| ParseItem::ChangeCount(ChangeType::StagedModified) } |
+        tag!("staged_deleted_count") => { |_| ParseItem::ChangeCount(ChangeType::StagedDeleted) } |
+        tag!("staged_renamed_count") => { |_| ParseItem::ChangeCount(ChangeType::StagedRenamed) } |
+        tag!("staged_typechange_count") => { |_| ParseItem::ChangeCount(ChangeType::StagedTypechange) }
     ),
     char!('}')
 ));
@@ -74,11 +89,18 @@ mod tests {
         assert_eq!(item(b"{commit_count}"), IResult::Done(&b""[..], ParseItem::CommitCount));
 
         // Changes to the working tree
-        assert_eq!(item(b"{new_count}"), IResult::Done(&b""[..], ParseItem::WTChangeCount(ChangeType::New)));
-        assert_eq!(item(b"{modified_count}"), IResult::Done(&b""[..], ParseItem::WTChangeCount(ChangeType::Modified)));
-        assert_eq!(item(b"{deleted_count}"), IResult::Done(&b""[..], ParseItem::WTChangeCount(ChangeType::Deleted)));
-        assert_eq!(item(b"{renamed_count}"), IResult::Done(&b""[..], ParseItem::WTChangeCount(ChangeType::Renamed)));
-        assert_eq!(item(b"{typechange_count}"), IResult::Done(&b""[..], ParseItem::WTChangeCount(ChangeType::Typechange)));
+        assert_eq!(item(b"{new_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::WTNew)));
+        assert_eq!(item(b"{modified_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::WTModified)));
+        assert_eq!(item(b"{deleted_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::WTDeleted)));
+        assert_eq!(item(b"{renamed_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::WTRenamed)));
+        assert_eq!(item(b"{typechange_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::WTTypechange)));
+
+        // Staged changes
+        assert_eq!(item(b"{staged_new_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::StagedNew)));
+        assert_eq!(item(b"{staged_modified_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::StagedModified)));
+        assert_eq!(item(b"{staged_deleted_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::StagedDeleted)));
+        assert_eq!(item(b"{staged_renamed_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::StagedRenamed)));
+        assert_eq!(item(b"{staged_typechange_count}"), IResult::Done(&b""[..], ParseItem::ChangeCount(ChangeType::StagedTypechange)));
     }
 
     #[test]
@@ -123,18 +145,23 @@ mod tests {
     #[test]
     fn one_of_each() {
         assert_eq!(
-            items(b"!{branch}{commit_count}{new_count}{modified_count}{deleted_count}{renamed_count}{typechange_count}"),
+            items(b"!{branch}{commit_count}{new_count}{modified_count}{deleted_count}{renamed_count}{typechange_count}{staged_new_count}{staged_modified_count}{staged_deleted_count}{staged_renamed_count}{staged_typechange_count}"),
             IResult::Done(
                 &b""[..],
                 vec![
                     ParseItem::Literal("!"),
                     ParseItem::Branch,
                     ParseItem::CommitCount,
-                    ParseItem::WTChangeCount(ChangeType::New),
-                    ParseItem::WTChangeCount(ChangeType::Modified),
-                    ParseItem::WTChangeCount(ChangeType::Deleted),
-                    ParseItem::WTChangeCount(ChangeType::Renamed),
-                    ParseItem::WTChangeCount(ChangeType::Typechange),
+                    ParseItem::ChangeCount(ChangeType::WTNew),
+                    ParseItem::ChangeCount(ChangeType::WTModified),
+                    ParseItem::ChangeCount(ChangeType::WTDeleted),
+                    ParseItem::ChangeCount(ChangeType::WTRenamed),
+                    ParseItem::ChangeCount(ChangeType::WTTypechange),
+                    ParseItem::ChangeCount(ChangeType::StagedNew),
+                    ParseItem::ChangeCount(ChangeType::StagedModified),
+                    ParseItem::ChangeCount(ChangeType::StagedDeleted),
+                    ParseItem::ChangeCount(ChangeType::StagedRenamed),
+                    ParseItem::ChangeCount(ChangeType::StagedTypechange),
                 ],
             )
         );
