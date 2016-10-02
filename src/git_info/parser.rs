@@ -18,7 +18,9 @@ pub enum ParseItem<'a> {
     // Changes in the working tree
     NewCount,
     ModifiedCount,
-    DeletedCount
+    DeletedCount,
+    RenamedCount,
+    TypechangeCount,
 }
 
 // A single item
@@ -31,7 +33,9 @@ named!(item<&[u8], ParseItem>, delimited!(
         // Changes in the working tree
         tag!("new_count") => { |_| ParseItem::NewCount } |
         tag!("modified_count") => { |_| ParseItem::ModifiedCount } |
-        tag!("deleted_count") => { |_| ParseItem::DeletedCount }
+        tag!("deleted_count") => { |_| ParseItem::DeletedCount } |
+        tag!("renamed_count") => { |_| ParseItem::RenamedCount } |
+        tag!("typechange_count") => { |_| ParseItem::TypechangeCount }
     ),
     char!('}')
 ));
@@ -68,6 +72,8 @@ mod tests {
         assert_eq!(item(b"{new_count}"), IResult::Done(&b""[..], ParseItem::NewCount));
         assert_eq!(item(b"{modified_count}"), IResult::Done(&b""[..], ParseItem::ModifiedCount));
         assert_eq!(item(b"{deleted_count}"), IResult::Done(&b""[..], ParseItem::DeletedCount));
+        assert_eq!(item(b"{renamed_count}"), IResult::Done(&b""[..], ParseItem::RenamedCount));
+        assert_eq!(item(b"{typechange_count}"), IResult::Done(&b""[..], ParseItem::TypechangeCount));
     }
 
     #[test]
@@ -112,7 +118,7 @@ mod tests {
     #[test]
     fn one_of_each() {
         assert_eq!(
-            items(b"!{branch}{commit_count}{new_count}{modified_count}{deleted_count}"),
+            items(b"!{branch}{commit_count}{new_count}{modified_count}{deleted_count}{renamed_count}{typechange_count}"),
             IResult::Done(
                 &b""[..],
                 vec![
@@ -122,6 +128,8 @@ mod tests {
                     ParseItem::NewCount,
                     ParseItem::ModifiedCount,
                     ParseItem::DeletedCount,
+                    ParseItem::RenamedCount,
+                    ParseItem::TypechangeCount,
                 ],
             )
         );

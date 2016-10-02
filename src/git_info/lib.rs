@@ -80,6 +80,16 @@ impl GitInfo {
                 let count = try!(self.status_count_filter(git2::STATUS_WT_DELETED));
                 Ok(count.to_string())
             },
+            // Count how many files in the working tree have been renamed
+            ParseItem::RenamedCount => {
+                let count = try!(self.status_count_filter(git2::STATUS_WT_RENAMED));
+                Ok(count.to_string())
+            },
+            // Count how many files in the working tree have been typechanged
+            ParseItem::TypechangeCount => {
+                let count = try!(self.status_count_filter(git2::STATUS_WT_TYPECHANGE));
+                Ok(count.to_string())
+            },
         }
     }
 
