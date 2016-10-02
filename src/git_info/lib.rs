@@ -8,7 +8,7 @@ use std::path;
 
 use git2::{Repository, Branch, BranchType};
 
-use parser::ParseItem;
+use parser::{ParseItem, ChangeType};
 
 // #[derive(Debug)]
 pub struct GitInfo {
@@ -66,21 +66,8 @@ impl GitInfo {
                 Ok(revwalk.count().to_string())
             },
             // Changes to the working tree
-            ref item @ ParseItem::NewCount |
-            ref item @ ParseItem::ModifiedCount |
-            ref item @ ParseItem::DeletedCount |
-            ref item @ ParseItem::RenamedCount |
-            ref item @ ParseItem::TypechangeCount => {
-                let item_type = match item {
-                    &ParseItem::NewCount => git2::STATUS_WT_NEW,
-                    &ParseItem::ModifiedCount => git2::STATUS_WT_MODIFIED,
-                    &ParseItem::DeletedCount => git2::STATUS_WT_DELETED,
-                    &ParseItem::RenamedCount => git2::STATUS_WT_RENAMED,
-                    &ParseItem::TypechangeCount => git2::STATUS_WT_TYPECHANGE,
-                    _ => return Err(errors::GitInfoError::ParseError),
-                };
-
-                let count = try!(self.status_count_filter(item_type));
+            ParseItem::WTChangeCount(ref change_type) => {
+                let count = try!(self.status_count_filter(change_type));
                 Ok(count.to_string())
             },
         }
@@ -107,11 +94,17 @@ impl GitInfo {
     }
 
     // Get the count of files matching a status type
-    fn status_count_filter(&self, status_type: git2::Status) -> Result<usize, errors::GitInfoError> {
+    fn status_count_filter(&self, status_type: &ChangeType) -> Result<usize, errors::GitInfoError> {
         let statuses = try!(self.repo.statuses(None));
         let modified_count = statuses.iter()
             .map(|status_entry| status_entry.status())
-            .filter(|status| status.contains(status_type))
+            .filter(|status| status.contains(match *status_type {
+                ChangeType::New => git2::STATUS_WT_NEW,
+                ChangeType::Modified => git2::STATUS_WT_MODIFIED,
+                ChangeType::Deleted => git2::STATUS_WT_DELETED,
+                ChangeType::Renamed => git2::STATUS_WT_RENAMED,
+                ChangeType::Typechange => git2::STATUS_WT_TYPECHANGE,
+            }))
             .count();
 
         Ok(modified_count)
