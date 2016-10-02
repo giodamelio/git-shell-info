@@ -65,29 +65,22 @@ impl GitInfo {
                 try!(revwalk.push_head());
                 Ok(revwalk.count().to_string())
             },
-            // Count how many files in the working tree are new
-            ParseItem::NewCount => {
-                let count = try!(self.status_count_filter(git2::STATUS_WT_NEW));
-                Ok(count.to_string())
-            },
-            // Count how many files in the working tree have been modified
-            ParseItem::ModifiedCount => {
-                let count = try!(self.status_count_filter(git2::STATUS_WT_MODIFIED));
-                Ok(count.to_string())
-            },
-            // Count how many files in the working tree have been deleted
-            ParseItem::DeletedCount => {
-                let count = try!(self.status_count_filter(git2::STATUS_WT_DELETED));
-                Ok(count.to_string())
-            },
-            // Count how many files in the working tree have been renamed
-            ParseItem::RenamedCount => {
-                let count = try!(self.status_count_filter(git2::STATUS_WT_RENAMED));
-                Ok(count.to_string())
-            },
-            // Count how many files in the working tree have been typechanged
-            ParseItem::TypechangeCount => {
-                let count = try!(self.status_count_filter(git2::STATUS_WT_TYPECHANGE));
+            // Changes to the working tree
+            ref item @ ParseItem::NewCount |
+            ref item @ ParseItem::ModifiedCount |
+            ref item @ ParseItem::DeletedCount |
+            ref item @ ParseItem::RenamedCount |
+            ref item @ ParseItem::TypechangeCount => {
+                let item_type = match item {
+                    &ParseItem::NewCount => git2::STATUS_WT_NEW,
+                    &ParseItem::ModifiedCount => git2::STATUS_WT_MODIFIED,
+                    &ParseItem::DeletedCount => git2::STATUS_WT_DELETED,
+                    &ParseItem::RenamedCount => git2::STATUS_WT_RENAMED,
+                    &ParseItem::TypechangeCount => git2::STATUS_WT_TYPECHANGE,
+                    _ => return Err(errors::GitInfoError::ParseError),
+                };
+
+                let count = try!(self.status_count_filter(item_type));
                 Ok(count.to_string())
             },
         }
