@@ -8,7 +8,7 @@ use std::path;
 
 use git2::{Repository, Branch, BranchType};
 
-use parser::{ParseItem, ChangeType};
+use parser::{ParseItem, ChangeType, TerminalColor};
 
 // #[derive(Debug)]
 pub struct GitInfo {
@@ -69,6 +69,30 @@ impl GitInfo {
             ParseItem::ChangeCount(ref change_type) => {
                 let count = try!(self.status_count_filter(change_type));
                 Ok(count.to_string())
+            },
+            // A simple terminal color
+            ParseItem::Color(ref color) => {
+                let code = match *color {
+                    TerminalColor::Reset => "0",
+                    TerminalColor::Black => "0;30",
+                    TerminalColor::Red => "0;31",
+                    TerminalColor::Green => "0;32",
+                    TerminalColor::Yellow => "0;33",
+                    TerminalColor::Blue => "0;34",
+                    TerminalColor::Magenta => "0;35",
+                    TerminalColor::Cyan => "0;36",
+                    TerminalColor::White => "0;37",
+                    TerminalColor::BoldBlack => "1;30",
+                    TerminalColor::BoldRed => "1;31",
+                    TerminalColor::BoldGreen => "1;32",
+                    TerminalColor::BoldYellow => "1;33",
+                    TerminalColor::BoldBlue => "1;34",
+                    TerminalColor::BoldMagenta => "1;35",
+                    TerminalColor::BoldCyan => "1;36",
+                    TerminalColor::BoldWhite => "1;37",
+                };
+
+                Ok(format!("\x1b[{}m", code))
             },
         }
     }
