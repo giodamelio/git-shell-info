@@ -1,10 +1,12 @@
 pub mod color;
+mod variable;
 
 use std::str;
 
 use nom::IResult;
 
 use super::errors::GitInfoError;
+use self::variable::variable_parser;
 
 /// Go until there is a {
 fn brace_or_eol(char: u8) -> bool {
@@ -43,30 +45,6 @@ pub enum ParseExpression<'a> {
     Color(color::TerminalColor),
 }
 
-// A single variable
-named!(variable<&[u8], ParseExpression>, delimited!(
-    char!('{'),
-    alt_complete!(
-        tag!("branch") => { |_| ParseExpression::Branch } |
-        tag!("commit_count") => { |_| ParseExpression::CommitCount } |
-
-        // Changes in the working tree
-        tag!("new_count") => { |_| ParseExpression::ChangeCount(ChangeType::WTNew) } |
-        tag!("modified_count") => { |_| ParseExpression::ChangeCount(ChangeType::WTModified) } |
-        tag!("deleted_count") => { |_| ParseExpression::ChangeCount(ChangeType::WTDeleted) } |
-        tag!("renamed_count") => { |_| ParseExpression::ChangeCount(ChangeType::WTRenamed) } |
-        tag!("typechange_count") => { |_| ParseExpression::ChangeCount(ChangeType::WTTypechange) } |
-
-        // Stashed changes
-        tag!("staged_new_count") => { |_| ParseExpression::ChangeCount(ChangeType::StagedNew) } |
-        tag!("staged_modified_count") => { |_| ParseExpression::ChangeCount(ChangeType::StagedModified) } |
-        tag!("staged_deleted_count") => { |_| ParseExpression::ChangeCount(ChangeType::StagedDeleted) } |
-        tag!("staged_renamed_count") => { |_| ParseExpression::ChangeCount(ChangeType::StagedRenamed) } |
-        tag!("staged_typechange_count") => { |_| ParseExpression::ChangeCount(ChangeType::StagedTypechange) }
-    ),
-    char!('}')
-));
-
 // Parse a function call with a single parameter
 named!(single_param<&[u8], &[u8]>, delimited!(
     char!('('),
@@ -89,7 +67,7 @@ named!(function<&[u8], ParseExpression>, delimited!(
 // One or more expressions seperated some string literals
 named!(expressions<&[u8], Vec<ParseExpression> >, many0!(alt!(
     function |
-    variable |
+    variable_parser |
     map!(
         map_res!(
             take_while!(brace_or_eol),
@@ -113,27 +91,7 @@ mod tests {
     use super::{ParseExpression, ChangeType, expressions, variable, single_param, function};
     use super::color::TerminalColor;
 
-    #[test]
-    fn single_item() {
-        assert_eq!(variable(b"{branch}"), IResult::Done(&b""[..], ParseExpression::Branch));
-        assert_eq!(variable(b"{commit_count}"), IResult::Done(&b""[..], ParseExpression::CommitCount));
-
-        // Changes to the working tree
-        assert_eq!(variable(b"{new_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::WTNew)));
-        assert_eq!(variable(b"{modified_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::WTModified)));
-        assert_eq!(variable(b"{deleted_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::WTDeleted)));
-        assert_eq!(variable(b"{renamed_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::WTRenamed)));
-        assert_eq!(variable(b"{typechange_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::WTTypechange)));
-
-        // Staged changes
-        assert_eq!(variable(b"{staged_new_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::StagedNew)));
-        assert_eq!(variable(b"{staged_modified_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::StagedModified)));
-        assert_eq!(variable(b"{staged_deleted_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::StagedDeleted)));
-        assert_eq!(variable(b"{staged_renamed_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::StagedRenamed)));
-        assert_eq!(variable(b"{staged_typechange_count}"), IResult::Done(&b""[..], ParseExpression::ChangeCount(ChangeType::StagedTypechange)));
-    }
-
-    #[test]
+       #[test]
     fn single_function() {
         assert_eq!(function(b"{color(red)}"), IResult::Done(&b""[..], ParseExpression::Color(TerminalColor::Red)));
     }
@@ -173,31 +131,6 @@ mod tests {
             IResult::Done(
                 &b""[..],
                 vec![ParseExpression::Branch, ParseExpression::Literal("YAY")],
-            )
-        );
-    }
-
-    #[test]
-    fn one_of_each() {
-        assert_eq!(
-            expressions(b"!{branch}{commit_count}{new_count}{modified_count}{deleted_count}{renamed_count}{typechange_count}{staged_new_count}{staged_modified_count}{staged_deleted_count}{staged_renamed_count}{staged_typechange_count}"),
-            IResult::Done(
-                &b""[..],
-                vec![
-                    ParseExpression::Literal("!"),
-                    ParseExpression::Branch,
-                    ParseExpression::CommitCount,
-                    ParseExpression::ChangeCount(ChangeType::WTNew),
-                    ParseExpression::ChangeCount(ChangeType::WTModified),
-                    ParseExpression::ChangeCount(ChangeType::WTDeleted),
-                    ParseExpression::ChangeCount(ChangeType::WTRenamed),
-                    ParseExpression::ChangeCount(ChangeType::WTTypechange),
-                    ParseExpression::ChangeCount(ChangeType::StagedNew),
-                    ParseExpression::ChangeCount(ChangeType::StagedModified),
-                    ParseExpression::ChangeCount(ChangeType::StagedDeleted),
-                    ParseExpression::ChangeCount(ChangeType::StagedRenamed),
-                    ParseExpression::ChangeCount(ChangeType::StagedTypechange),
-                ],
             )
         );
     }
