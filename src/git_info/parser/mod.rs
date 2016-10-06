@@ -1,5 +1,6 @@
 pub mod color;
 mod variable;
+mod function;
 
 use std::str;
 
@@ -7,6 +8,7 @@ use nom::IResult;
 
 use super::errors::GitInfoError;
 use self::variable::variable_parser;
+use self::function::function_parser;
 
 /// Go until there is a {
 fn brace_or_eol(char: u8) -> bool {
@@ -45,28 +47,9 @@ pub enum ParseExpression<'a> {
     Color(color::TerminalColor),
 }
 
-// Parse a function call with a single parameter
-named!(single_param<&[u8], &[u8]>, delimited!(
-    char!('('),
-    take_until!(")"),
-    char!(')')
-));
-
-// A function with some parameters
-named!(function<&[u8], ParseExpression>, delimited!(
-    char!('{'),
-    alt!(
-        tuple!(
-            tag!("color"),
-            single_param
-        ) => { |params: (&[u8], &[u8])| ParseExpression::Color(color::TerminalColor::convert(params.1)) }
-    ),
-    char!('}')
-));
-
 // One or more expressions seperated some string literals
 named!(expressions<&[u8], Vec<ParseExpression> >, many0!(alt!(
-    function |
+    function_parser |
     variable_parser |
     map!(
         map_res!(
@@ -88,13 +71,7 @@ pub fn parse(template: &str) -> Result<Vec<ParseExpression>, GitInfoError> {
 mod tests {
     use nom::IResult;
 
-    use super::{ParseExpression, ChangeType, expressions, variable, single_param, function};
-    use super::color::TerminalColor;
-
-       #[test]
-    fn single_function() {
-        assert_eq!(function(b"{color(red)}"), IResult::Done(&b""[..], ParseExpression::Color(TerminalColor::Red)));
-    }
+    use super::{ParseExpression, expressions};
 
     #[test]
     fn three_items() {
@@ -133,10 +110,5 @@ mod tests {
                 vec![ParseExpression::Branch, ParseExpression::Literal("YAY")],
             )
         );
-    }
-
-    #[test]
-    fn parse_single_param() {
-        assert_eq!(single_param(b"(red)"), IResult::Done(&b""[..], &b"red"[..]));
     }
 }
