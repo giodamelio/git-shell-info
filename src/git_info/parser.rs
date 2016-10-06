@@ -4,9 +4,15 @@ use nom::IResult;
 
 use super::errors::GitInfoError;
 
-// Go until there is a {
+/// Go until there is a {
 fn brace_or_eol(char: u8) -> bool {
     char != b'{'
+}
+
+#[test]
+fn brace_or_eol_test() {
+    assert_eq!(brace_or_eol(b'{'), false);
+    assert_eq!(brace_or_eol(b'A'), true);
 }
 
 #[derive(Debug, PartialEq, Eq)]
