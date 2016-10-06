@@ -8,7 +8,7 @@ use std::path;
 
 use git2::{Repository, Branch, BranchType};
 
-use parser::{ParseItem, ChangeType, TerminalColor};
+use parser::{ParseExpression, ChangeType, TerminalColor};
 
 // #[derive(Debug)]
 pub struct GitInfo {
@@ -44,14 +44,14 @@ impl GitInfo {
            .concat())
     }
 
-    // Convert a ParseItem varient into a String
-    fn parse_item_to_string(&self, parse_item: &ParseItem) -> Result<String, errors::GitInfoError> {
+    // Convert a ParseExpression varient into a String
+    fn parse_item_to_string(&self, parse_item: &ParseExpression) -> Result<String, errors::GitInfoError> {
         match *parse_item {
-            // A non-ParseItem string literal to be passed through to the output intact
-            ParseItem::Literal(text) =>
+            // A non-ParseExpression string literal to be passed through to the output intact
+            ParseExpression::Literal(text) =>
                 Ok::<String, errors::GitInfoError>(text.to_owned()),
             // Get the name of the current branch
-            ParseItem::Branch => {
+            ParseExpression::Branch => {
                 let branch = try!(self.branch_current());
                 let name = try!(branch.name());
                 match name {
@@ -60,18 +60,18 @@ impl GitInfo {
                 }
             },
             // Count how many commits there are on the current branch
-            ParseItem::CommitCount => {
+            ParseExpression::CommitCount => {
                 let mut revwalk = try!(self.repo.revwalk());
                 try!(revwalk.push_head());
                 Ok(revwalk.count().to_string())
             },
             // Working Tree/Staged changes
-            ParseItem::ChangeCount(ref change_type) => {
+            ParseExpression::ChangeCount(ref change_type) => {
                 let count = try!(self.status_count_filter(change_type));
                 Ok(count.to_string())
             },
             // A simple terminal color
-            ParseItem::Color(ref color) => {
+            ParseExpression::Color(ref color) => {
                 let code = match *color {
                     TerminalColor::Reset => "0",
                     TerminalColor::Black => "0;30",
