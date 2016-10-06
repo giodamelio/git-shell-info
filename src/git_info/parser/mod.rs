@@ -1,3 +1,5 @@
+pub mod color;
+
 use std::str;
 
 use nom::IResult;
@@ -33,33 +35,12 @@ pub enum ChangeType {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TerminalColor {
-    Reset,
-    Black,
-    Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    Cyan,
-    White,
-    BoldBlack,
-    BoldRed,
-    BoldGreen,
-    BoldYellow,
-    BoldBlue,
-    BoldMagenta,
-    BoldCyan,
-    BoldWhite,
-}
-
-#[derive(Debug, PartialEq, Eq)]
 pub enum ParseExpression<'a> {
     Literal(&'a str),
     Branch,
     CommitCount,
     ChangeCount(ChangeType),
-    Color(TerminalColor),
+    Color(color::TerminalColor),
 }
 
 // A single variable
@@ -100,26 +81,7 @@ named!(function<&[u8], ParseExpression>, delimited!(
         tuple!(
             tag!("color"),
             single_param
-        ) => { |params: (&[u8], &[u8])| ParseExpression::Color(match params.1 {
-
-            b"black" => TerminalColor::Black,
-            b"red" => TerminalColor::Red,
-            b"green" => TerminalColor::Green,
-            b"yellow" => TerminalColor::Yellow,
-            b"blue" => TerminalColor::Blue,
-            b"magenta" => TerminalColor::Magenta,
-            b"cyan" => TerminalColor::Cyan,
-            b"white" => TerminalColor::White,
-            b"bold_black" => TerminalColor::BoldBlack,
-            b"bold_red" => TerminalColor::BoldRed,
-            b"bold_green" => TerminalColor::BoldGreen,
-            b"bold_yellow" => TerminalColor::BoldYellow,
-            b"bold_blue" => TerminalColor::BoldBlue,
-            b"bold_magenta" => TerminalColor::BoldMagenta,
-            b"bold_cyan" => TerminalColor::BoldCyan,
-            b"bold_white" => TerminalColor::BoldWhite,
-            &_ => TerminalColor::Reset,
-        }) }
+        ) => { |params: (&[u8], &[u8])| ParseExpression::Color(color::TerminalColor::convert(params.1)) }
     ),
     char!('}')
 ));
@@ -148,7 +110,8 @@ pub fn parse(template: &str) -> Result<Vec<ParseExpression>, GitInfoError> {
 mod tests {
     use nom::IResult;
 
-    use super::{ParseExpression, ChangeType, TerminalColor, expressions, variable, single_param, function};
+    use super::{ParseExpression, ChangeType, expressions, variable, single_param, function};
+    use super::color::TerminalColor;
 
     #[test]
     fn single_item() {
