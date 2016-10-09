@@ -19,6 +19,7 @@ pub enum TerminalColor {
     BoldMagenta,
     BoldCyan,
     BoldWhite,
+    TrueColor(u8, u8, u8),
 }
 
 impl TerminalColor {
@@ -49,23 +50,26 @@ impl fmt::Display for TerminalColor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Get the ANSI code for a specific color
         let color_code = match *self {
-            TerminalColor::Reset => "0",
-            TerminalColor::Black => "0;30",
-            TerminalColor::Red => "0;31",
-            TerminalColor::Green => "0;32",
-            TerminalColor::Yellow => "0;33",
-            TerminalColor::Blue => "0;34",
-            TerminalColor::Magenta => "0;35",
-            TerminalColor::Cyan => "0;36",
-            TerminalColor::White => "0;37",
-            TerminalColor::BoldBlack => "1;30",
-            TerminalColor::BoldRed => "1;31",
-            TerminalColor::BoldGreen => "1;32",
-            TerminalColor::BoldYellow => "1;33",
-            TerminalColor::BoldBlue => "1;34",
-            TerminalColor::BoldMagenta => "1;35",
-            TerminalColor::BoldCyan => "1;36",
-            TerminalColor::BoldWhite => "1;37",
+            TerminalColor::Reset => "0".to_string(),
+            TerminalColor::Black => "0;30".to_string(),
+            TerminalColor::Red => "0;31".to_string(),
+            TerminalColor::Green => "0;32".to_string(),
+            TerminalColor::Yellow => "0;33".to_string(),
+            TerminalColor::Blue => "0;34".to_string(),
+            TerminalColor::Magenta => "0;35".to_string(),
+            TerminalColor::Cyan => "0;36".to_string(),
+            TerminalColor::White => "0;37".to_string(),
+            TerminalColor::BoldBlack => "1;30".to_string(),
+            TerminalColor::BoldRed => "1;31".to_string(),
+            TerminalColor::BoldGreen => "1;32".to_string(),
+            TerminalColor::BoldYellow => "1;33".to_string(),
+            TerminalColor::BoldBlue => "1;34".to_string(),
+            TerminalColor::BoldMagenta => "1;35".to_string(),
+            TerminalColor::BoldCyan => "1;36".to_string(),
+            TerminalColor::BoldWhite => "1;37".to_string(),
+            TerminalColor::TrueColor(r, g, b) => {
+                format!("38;2;{};{};{}", r, g, b)
+            }
         };
 
         write!(f, "\x1b[{}m", color_code)
@@ -81,6 +85,11 @@ mod tests {
         assert_eq!(
             format!("{}", TerminalColor::BoldRed),
             "\x1b[1;31m"
+        );
+
+        assert_eq!(
+            format!("{}", TerminalColor::TrueColor(255, 0, 255)),
+            "\x1b[38;2;255;0;255m"
         );
     }
 
