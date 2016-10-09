@@ -1,3 +1,5 @@
+use nom::alphanumeric;
+
 use super::{ParseExpression};
 use parser::color::TerminalColor;
 
@@ -5,6 +7,19 @@ use parser::color::TerminalColor;
 named!(single_param<&[u8], &[u8]>, delimited!(
     char!('('),
     take_until!(")"),
+    char!(')')
+));
+
+// Parse a list of parameters
+named!(params<&[u8], Vec<&[u8]> >, delimited!(
+    char!('('),
+    separated_list!(
+        terminated!(
+            char!(','),
+            many0!(char!(' '))
+        ),
+        alphanumeric
+    ),
     char!(')')
 ));
 
@@ -32,7 +47,7 @@ mod tests {
     use parser::{ParseExpression};
     use parser::color::TerminalColor;
 
-    use super::{function_parser, single_param};
+    use super::{function_parser, single_param, params};
 
     #[test]
     fn single_function() {
@@ -50,6 +65,38 @@ mod tests {
         assert_eq!(
             single_param(b"(red)"),
             IResult::Done(&b""[..], &b"red"[..])
+        );
+    }
+
+    #[test]
+    fn parse_params() {
+        assert_eq!(
+            params(b"(red,yellow,test42)"),
+            IResult::Done(&b""[..], vec![
+                &b"red"[..],
+                &b"yellow"[..],
+                &b"test42"[..],
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_params_with_spaces() {
+        assert_eq!(
+            params(b"(red, yellow,      test42)"),
+            IResult::Done(&b""[..], vec![
+                &b"red"[..],
+                &b"yellow"[..],
+                &b"test42"[..],
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_params_empty() {
+        assert_eq!(
+            params(b"()"),
+            IResult::Done(&b""[..], vec![])
         );
     }
 }
