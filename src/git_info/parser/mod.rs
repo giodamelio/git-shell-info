@@ -72,14 +72,19 @@ mod tests {
     use nom::IResult;
 
     use super::{ParseExpression, expressions};
+    use super::color::TerminalColor;
 
     #[test]
     fn three_items() {
         assert_eq!(
-            expressions(b"{branch}{commit_count}{branch}"),
+            expressions(b"{color(red)}{commit_count}{branch}"),
             IResult::Done(
                 &b""[..],
-                vec![ParseExpression::Branch, ParseExpression::CommitCount, ParseExpression::Branch],
+                vec![
+                    ParseExpression::Color(TerminalColor::Red),
+                    ParseExpression::CommitCount,
+                    ParseExpression::Branch
+                ],
             )
         );
     }
