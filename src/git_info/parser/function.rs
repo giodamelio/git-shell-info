@@ -1,3 +1,5 @@
+use std::str;
+
 use nom::{IResult, Err, ErrorKind, alphanumeric};
 
 use super::{ParseExpression};
@@ -26,6 +28,36 @@ named!(function<&[u8], (&[u8], Vec<&[u8]>)>, delimited!(
     char!('}')
 ));
 
+// Convert a byte slice to a number
+// TODO: clean up cusom errors
+fn slice_to_num<T>(input: &[u8]) -> IResult<&[u8], T>
+where T: str::FromStr {
+    // Convert bytes to string
+    match str::from_utf8(input) {
+        Ok(string) => {
+            match str::parse::<T>(string) {
+                Ok(num) => IResult::Done(&b""[..], num),
+                Err(_) => {
+                    IResult::Error(
+                        Err::Position(
+                            ErrorKind::Custom(0),
+                            input
+                        )
+                    )
+                }
+            }
+        },
+        Err(_) => {
+            IResult::Error(
+                Err::Position(
+                    ErrorKind::Custom(0),
+                    input
+                )
+            )
+        }
+    }
+}
+
 pub fn function_parser(input: &[u8]) -> IResult<&[u8], ParseExpression> {
     let (remaining, info) = try_parse!(input, function);
     match info {
@@ -35,6 +67,18 @@ pub fn function_parser(input: &[u8]) -> IResult<&[u8], ParseExpression> {
                 remaining,
                 ParseExpression::Color(
                     TerminalColor::convert(params[0])
+                )
+            )
+        },
+        // TrueColor
+        (b"rgb", ref params) if params.len() == 3 => {
+            let (_, red) = try_parse!(params[0], slice_to_num);
+            let (_, green) = try_parse!(params[1], slice_to_num);
+            let (_, blue) = try_parse!(params[2], slice_to_num);
+            IResult::Done(
+                remaining,
+                ParseExpression::Color(
+                    TerminalColor::TrueColor(red, green, blue)
                 )
             )
         },
@@ -57,7 +101,7 @@ mod tests {
     use parser::{ParseExpression};
     use parser::color::TerminalColor;
 
-    use super::{function_parser, params, function};
+    use super::{function_parser, params, function, slice_to_num};
 
     // Test the params parser
 
@@ -127,6 +171,26 @@ mod tests {
             IResult::Done(
                 &b""[..],
                 ParseExpression::Color(TerminalColor::Red)
+            )
+        );
+
+        assert_eq!(
+            function_parser(b"{rgb(255, 0, 255)}"),
+            IResult::Done(
+                &b""[..],
+                ParseExpression::Color(TerminalColor::TrueColor(255, 0, 255))
+            )
+        );
+    }
+
+    // Test util functions
+    #[test]
+    fn slice_to_num_conversion() {
+        assert_eq!(
+            slice_to_num(&b"122"[..]),
+            IResult::Done(
+                &b""[..],
+                122u8
             )
         );
     }
