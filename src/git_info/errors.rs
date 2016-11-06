@@ -2,29 +2,30 @@ use std::fmt;
 use std::error::Error;
 
 use git2;
+use nom;
 
 #[derive(Debug)]
-pub enum GitInfoError {
+pub enum GitInfoError<'a> {
     LibGitError(git2::Error),
-    ParseError,
+    ParseError(nom::Err<&'a [u8]>),
     BranchError,
 }
 
-impl fmt::Display for GitInfoError {
+impl<'a> fmt::Display for GitInfoError<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             GitInfoError::LibGitError(ref err) => err.fmt(f),
-            GitInfoError::ParseError => write!(f, "Parse error"),
+            GitInfoError::ParseError(ref err) => write!(f, "Parse error: {:?}", err),
             GitInfoError::BranchError => write!(f, "Branch error"),
         }
     }
 }
 
-impl Error for GitInfoError {
+impl<'a> Error for GitInfoError<'a> {
     fn description(&self) -> &str {
         match *self {
             GitInfoError::LibGitError(ref err) => err.description(),
-            GitInfoError::ParseError => "Parse error",
+            GitInfoError::ParseError(_) => "Parse error",
             GitInfoError::BranchError => "Branch error",
         }
     }
@@ -32,14 +33,14 @@ impl Error for GitInfoError {
     fn cause(&self) -> Option<&Error> {
         match *self {
             GitInfoError::LibGitError(ref err) => Some(err),
-            GitInfoError::ParseError => None,
+            GitInfoError::ParseError(_) => None,
             GitInfoError::BranchError => None,
         }
     }
 }
 
-impl From<git2::Error> for GitInfoError {
-    fn from(err: git2::Error) -> GitInfoError {
+impl<'a> From<git2::Error> for GitInfoError<'a> {
+    fn from(err: git2::Error) -> GitInfoError<'a> {
         GitInfoError::LibGitError(err)
     }
 }

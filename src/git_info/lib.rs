@@ -16,7 +16,7 @@ pub struct GitInfo {
 }
 
 impl GitInfo {
-    pub fn new(path: path::PathBuf) -> Result<GitInfo, errors::GitInfoError> {
+    pub fn new<'a>(path: path::PathBuf) -> Result<GitInfo, errors::GitInfoError<'a>> {
         let repo = try!(Repository::open(path));
 
         Ok(GitInfo {
@@ -25,7 +25,7 @@ impl GitInfo {
     }
 
     // Render a template
-    pub fn format(&self, template: &str) -> Result<String, errors::GitInfoError> {
+    pub fn format<'a>(&'a self, template: &'a str) -> Result<String, errors::GitInfoError> {
         // Parse the template
         let parsed = try!(parser::parse(template));
 

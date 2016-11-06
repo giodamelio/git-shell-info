@@ -4,6 +4,7 @@ mod function;
 
 use std::str;
 
+use nom;
 use nom::IResult;
 
 use super::errors::GitInfoError;
@@ -60,10 +61,15 @@ named!(expressions<&[u8], Vec<ParseExpression> >, many0!(alt!(
     )
 )));
 
+// TODO: clean up incomplete handeling
 pub fn parse(template: &str) -> Result<Vec<ParseExpression>, GitInfoError> {
     match expressions(template.as_bytes()) {
         IResult::Done(_, result) => Ok(result),
-        IResult::Error(_) | IResult::Incomplete(_) => Err(GitInfoError::ParseError),
+        IResult::Error(err) =>
+            Err(GitInfoError::ParseError(err)),
+        IResult::Incomplete(_) =>
+            Err(GitInfoError::ParseError(
+                nom::Err::Code(nom::ErrorKind::Custom(0)))),
     }
 }
 
