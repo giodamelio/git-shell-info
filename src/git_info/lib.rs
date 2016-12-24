@@ -3,6 +3,7 @@ extern crate edo;
 
 mod errors;
 mod types;
+mod handlers;
 
 use std::path;
 
@@ -10,6 +11,7 @@ use git2::{Repository, Branch, BranchType};
 use edo::Edo;
 
 use types::{ChangeType};
+use handlers::{color_handler, rgb_handler};
 
 // #[derive(Debug)]
 pub struct GitInfo {
@@ -32,43 +34,10 @@ impl GitInfo {
 
         // Handle color statements
         // TODO: test the bold colors
-        template.register_handler("color", |args| {
-            if args.len() == 1 {
-                let color_code = (match args[0] {
-                    "reset" => "0",
-                    "black" => "0;30",
-                    "red" => "0;31",
-                    "green" => "0;32",
-                    "yellow" => "0;33",
-                    "blue" => "0;34",
-                    "magenta" => "0;35",
-                    "cyan" => "0;36",
-                    "white" => "0;37",
-                    "bold_black" => "1;30",
-                    "bold_red" => "1;31",
-                    "bold_green" => "1;32",
-                    "bold_yellow" => "1;33",
-                    "bold_blue" => "1;34",
-                    "bold_magenta" => "1;35",
-                    "bold_cyan" => "1;36",
-                    "bold_white" => "1;37",
-                    _ => "0",
-                }).to_string();
-
-                format!("\x1b[{}m", color_code)
-            } else {
-                "".to_string()
-            }
-        });
+        template.register_handler("color", color_handler);
 
         // Handle true color statements
-        template.register_handler("rgb", |args| {
-            if args.len() == 3 {
-                format!("\x1b[38;2;{};{};{}m", args[0], args[1], args[2])
-            } else {
-                "".to_string()
-            }
-        });
+        template.register_handler("rgb", rgb_handler);
 
         Ok(template.render())
     }
