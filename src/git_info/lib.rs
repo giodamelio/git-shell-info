@@ -1,14 +1,15 @@
 extern crate git2;
-#[macro_use] extern crate nom;
+extern crate edo;
 
 mod errors;
-mod parser;
+mod types;
 
 use std::path;
 
 use git2::{Repository, Branch, BranchType};
+use edo::Edo;
 
-use parser::{ParseExpression, ChangeType};
+use types::{ChangeType};
 
 // #[derive(Debug)]
 pub struct GitInfo {
@@ -16,7 +17,7 @@ pub struct GitInfo {
 }
 
 impl GitInfo {
-    pub fn new<'a>(path: path::PathBuf) -> Result<GitInfo, errors::GitInfoError<'a>> {
+    pub fn new<'a>(path: path::PathBuf) -> Result<GitInfo, errors::GitInfoError> {
         let repo = try!(Repository::open(path));
 
         Ok(GitInfo {
@@ -26,75 +27,50 @@ impl GitInfo {
 
     // Render a template
     pub fn format<'a>(&'a self, template: &'a str) -> Result<String, errors::GitInfoError> {
-        // Parse the template
-        let parsed = try!(parser::parse(template));
+        // Setup the template with Edo
+        let mut template = try!(Edo::new(template));
 
-        // Get the current branch
+        // Handle color statements
+        // TODO: test the bold colors
+        template.register_handler("color", |args| {
+            if args.len() == 1 {
+                let color_code = (match args[0] {
+                    "reset" => "0",
+                    "black" => "0;30",
+                    "red" => "0;31",
+                    "green" => "0;32",
+                    "yellow" => "0;33",
+                    "blue" => "0;34",
+                    "magenta" => "0;35",
+                    "cyan" => "0;36",
+                    "white" => "0;37",
+                    "bold_black" => "1;30",
+                    "bold_red" => "1;31",
+                    "bold_green" => "1;32",
+                    "bold_yellow" => "1;33",
+                    "bold_blue" => "1;34",
+                    "bold_magenta" => "1;35",
+                    "bold_cyan" => "1;36",
+                    "bold_white" => "1;37",
+                    _ => "0",
+                }).to_string();
 
-        // Render the template with git data
-        Ok(parsed.iter()
-           // Render the data from git
-           .map(|parse_item| self.parse_item_to_string(parse_item))
-           // Render any errors at empty strings
-           .map(|item| match item {
-               Ok(i) => i,
-               Err(_) => String::from(""),
-           })
-           .collect::<Vec<_>>()
-           .concat())
-    }
+                format!("\x1b[{}m", color_code)
+            } else {
+                "".to_string()
+            }
+        });
 
-    // Convert a ParseExpression varient into a String
-    fn parse_item_to_string(&self, parse_item: &ParseExpression) -> Result<String, errors::GitInfoError> {
-        match *parse_item {
-            // A non-ParseExpression string literal to be passed through to the output intact
-            ParseExpression::Literal(text) =>
-                Ok::<String, errors::GitInfoError>(text.to_owned()),
-            // Get the name of the current branch
-            ParseExpression::Branch => {
-                let branch = try!(self.branch_current());
-                let name = try!(branch.name());
-                match name {
-                    Some(n) => Ok(n.to_owned()),
-                    None => Ok(String::from("")),
-                }
-            },
-            // Count how many commits there are on the current branch
-            ParseExpression::CommitCount => {
-                let mut revwalk = try!(self.repo.revwalk());
-                try!(revwalk.push_head());
-                Ok(revwalk.count().to_string())
-            },
-            // Working Tree/Staged changes
-            ParseExpression::ChangeCount(ref change_type) => {
-                let count = try!(self.status_count_filter(change_type));
-                Ok(count.to_string())
-            },
-            // A simple terminal color
-            ParseExpression::Color(ref color) => {
-                Ok(format!("{}", color))
-            },
-        }
-    }
+        // Handle true color statements
+        template.register_handler("rgb", |args| {
+            if args.len() == 3 {
+                format!("\x1b[38;2;{};{};{}m", args[0], args[1], args[2])
+            } else {
+                "".to_string()
+            }
+        });
 
-    // Gets the current branch
-    pub fn branch_current(&self) -> Result<Branch, errors::GitInfoError> {
-        // Get a reference to the head
-        let head = try!(self.repo.head());
-
-        // Make sure head is pointing to a branch
-        if !head.is_branch() {
-            return Err(errors::GitInfoError::BranchError);
-        };
-
-        // Get the name of the branch
-        let name = match head.shorthand() {
-            Some(name) => name,
-            None => return Err(errors::GitInfoError::BranchError),
-        };
-
-        // Get the branch
-        Ok(try!(self.repo.find_branch(name, BranchType::Local)))
+        Ok(template.render())
     }
 
     // Get the count of files matching a status type

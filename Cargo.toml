@@ -9,8 +9,8 @@ path = "src/main.rs"
 
 [dependencies]
 clap = "2.13.0"
+edo = "0.2.0"
 git2 = "0.4.4"
-nom = "1.2.4"
 
 [lib]
 name = "git_info"

@@ -2,30 +2,30 @@ use std::fmt;
 use std::error::Error;
 
 use git2;
-use nom;
+use edo;
 
 #[derive(Debug)]
-pub enum GitInfoError<'a> {
+pub enum GitInfoError {
     LibGitError(git2::Error),
-    ParseError(nom::Err<&'a [u8]>),
+    EdoError(edo::error::EdoError),
     BranchError,
 }
 
-impl<'a> fmt::Display for GitInfoError<'a> {
+impl fmt::Display for GitInfoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             GitInfoError::LibGitError(ref err) => err.fmt(f),
-            GitInfoError::ParseError(ref err) => write!(f, "Parse error: {:?}", err),
+            GitInfoError::EdoError(ref err) => write!(f, "Edo error: {:?}", err),
             GitInfoError::BranchError => write!(f, "Branch error"),
         }
     }
 }
 
-impl<'a> Error for GitInfoError<'a> {
+impl Error for GitInfoError {
     fn description(&self) -> &str {
         match *self {
             GitInfoError::LibGitError(ref err) => err.description(),
-            GitInfoError::ParseError(_) => "Parse error",
+            GitInfoError::EdoError(ref err) => err.description(),
             GitInfoError::BranchError => "Branch error",
         }
     }
@@ -33,14 +33,20 @@ impl<'a> Error for GitInfoError<'a> {
     fn cause(&self) -> Option<&Error> {
         match *self {
             GitInfoError::LibGitError(ref err) => Some(err),
-            GitInfoError::ParseError(_) => None,
+            GitInfoError::EdoError(ref err) => Some(err),
             GitInfoError::BranchError => None,
         }
     }
 }
 
-impl<'a> From<git2::Error> for GitInfoError<'a> {
-    fn from(err: git2::Error) -> GitInfoError<'a> {
+impl From<git2::Error> for GitInfoError {
+    fn from(err: git2::Error) -> GitInfoError {
         GitInfoError::LibGitError(err)
+    }
+}
+
+impl From<edo::error::EdoError> for GitInfoError {
+    fn from(err: edo::error::EdoError) -> GitInfoError {
+        GitInfoError::EdoError(err)
     }
 }
