@@ -30,7 +30,7 @@ impl GitInfo {
     // Render a template
     pub fn format<'a>(&'a self, template: &'a str) -> Result<String, errors::GitInfoError> {
         // Setup the template with Edo
-        let mut template = try!(Edo::new(template));
+        let mut template: Edo<Option<&Repository>> = try!(Edo::new(template));
 
         // Handle color statements
         // TODO: test the bold colors
@@ -39,7 +39,7 @@ impl GitInfo {
         // Handle true color statements
         template.register_handler("rgb", rgb_handler);
 
-        Ok(template.render())
+        Ok(template.render(Some(&self.repo)))
     }
 
     // Get the count of files matching a status type

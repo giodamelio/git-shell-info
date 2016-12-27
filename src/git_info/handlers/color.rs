@@ -1,4 +1,6 @@
-pub fn color_handler(args: Vec<&str>) -> Result<String, String> {
+use git2::Repository;
+
+pub fn color_handler(args: Vec<&str>, _: Option<&Repository>) -> Result<String, String> {
     if args.len() == 1 {
         let color_code = match args[0] {
             "reset" => Ok("0"),
@@ -27,7 +29,7 @@ pub fn color_handler(args: Vec<&str>) -> Result<String, String> {
     }
 }
 
-pub fn rgb_handler(args: Vec<&str>) -> Result<String, String> {
+pub fn rgb_handler(args: Vec<&str>, _: Option<&Repository>) -> Result<String, String> {
     if args.len() == 3 {
         let nums: Result<Vec<u8>, _> = args.iter()
             .map(|n| n.parse::<u8>())
@@ -45,17 +47,19 @@ pub fn rgb_handler(args: Vec<&str>) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    use git2::Repository;
+
     use super::{color_handler, rgb_handler};
 
     #[test]
     fn valid_color() {
         assert_eq!(
-            color_handler(vec!["red"]).unwrap(),
+            color_handler(vec!["red"], None).unwrap(),
             "\x1b[0;31m"
         );
 
         assert_eq!(
-            color_handler(vec!["bold_cyan"]).unwrap(),
+            color_handler(vec!["bold_cyan"], None).unwrap(),
             "\x1b[1;36m"
         );
     }
@@ -63,7 +67,7 @@ mod tests {
     #[test]
     fn invalid_color() {
         assert_eq!(
-            color_handler(vec!["not a color"]).err(),
+            color_handler(vec!["not a color"], None).err(),
             Some("color: must be a valid color name".to_string())
         );
     }
@@ -71,12 +75,12 @@ mod tests {
     #[test]
     fn incorrect_parameters_color() {
         assert_eq!(
-            color_handler(vec!["red", "blue"]).err(),
+            color_handler(vec!["red", "blue"], None).err(),
             Some("color: must have one arguments".to_string())
         );
 
         assert_eq!(
-            color_handler(vec![]).err(),
+            color_handler(vec![], None).err(),
             Some("color: must have one arguments".to_string())
         );
     }
@@ -84,7 +88,7 @@ mod tests {
     #[test]
     fn valid_rgb() {
         assert_eq!(
-            rgb_handler(vec!["255", "0", "222"]).unwrap(),
+            rgb_handler(vec!["255", "0", "222"], None).unwrap(),
             "\x1b[38;2;255;0;222m"
         );
     }
@@ -92,7 +96,7 @@ mod tests {
     #[test]
     fn invalid_rgb() {
         assert_eq!(
-            rgb_handler(vec!["100000", "0", "222"]).err(),
+            rgb_handler(vec!["100000", "0", "222"], None).err(),
             Some("rbg: arguments must be numbers between 0 and 255".to_string())
         );
     }
@@ -100,12 +104,12 @@ mod tests {
     #[test]
     fn incorrect_parameters_rgb() {
         assert_eq!(
-            rgb_handler(vec!["222"]).err(),
+            rgb_handler(vec!["222"], None).err(),
             Some("rgb: must have three arguments".to_string())
         );
 
         assert_eq!(
-            rgb_handler(vec![]).err(),
+            rgb_handler(vec![], None).err(),
             Some("rgb: must have three arguments".to_string())
         );
     }
