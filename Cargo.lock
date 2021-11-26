@@ -1,3 +1,5 @@
+// adding a note for testing purposes only
+
 [root]
 name = "git-shell-info"
 version = "0.1.0"
